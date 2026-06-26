@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Generator — USA · UAE · Bangladesh · India</title>
+
+    <style>
+        :root {
+            --ink: #0A2540;
+            --paper: #FFFFFF;
+            --canvas: #EAF2FF;
+            --slate: #5B6573;
+            --slate-light: #8A93A0;
+            --brass: #1E88E5;
+            --brass-dark: #1565C0;
+            --line: #DDE1E6;
+            --danger: #B23B3B;
+            --danger-bg: #FBEAEA;
+            --radius: 10px;
+            font-size: 16px;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: var(--canvas);
+            color: var(--ink);
+            font-family: Segoe UI, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        input,
+        textarea,
+        select,
+        button {
+            font-family: inherit;
+            color: inherit
+        }
+
+        .app {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 24px 20px 60px
+        }
+
+        /* ---------- App bar ---------- */
+        .appbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 4px 22px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .brand-mark {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: var(--ink);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: .02em;
+        }
+
+        .brand-name {
+            font-family: 'Fraunces', serif;
+            font-weight: 600;
+            font-size: 20px;
+            letter-spacing: .01em
+        }
+
+        .locale-control label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 11px;
+            color: var(--slate);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            font-weight: 600;
+        }
+
+        .locale-control select {
+            margin-top: 2px;
+            padding: 9px 32px 9px 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0L5 6L10 0Z" fill="%235B6573"/></svg>') no-repeat right 12px center;
+            appearance: none;
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 200px;
+            cursor: pointer;
+        }
+
+        .locale-control select:focus {
+            outline: 2px solid var(--brass);
+            outline-offset: 1px
+        }
+
+        /* ---------- Sheet wrap + stamp ---------- */
+        .sheet-wrap {
+            position: relative
+        }
+/* ---------- Sheet (the printable invoice) ---------- */
+        .sheet {
+            background: var(--paper);
+            border-radius: var(--radius);
+            box-shadow: 0 1px 2px rgba(22, 32, 43, .04), 0 12px 32px rgba(22, 32, 43, .07);
+            padding: 40px 44px 32px;
+        }
+
+        .sheet-head {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 32px;
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--line)
+        }
+
+        .logo-upload {
+            width: 84px;
+            height: 84px;
+            border: 1.5px dashed var(--line);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            margin-bottom: 14px;
+            overflow: hidden;
+            background: #FBFBFC;
+        }
+
+        .logo-upload img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain
+        }
+
+        .logo-upload #logoPlaceholder {
+            font-size: 11px;
+            color: var(--slate-light);
+            text-align: center;
+            padding: 0 6px
+        }
+
+        .logo-upload input[type=file] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer
+        }
+
+        .logo-remove {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--ink);
+            color: #fff;
+            border: none;
+            font-size: 11px;
+            line-height: 1;
+            cursor: pointer;
+            display: none;
+        }
+
+        .from-block input,
+        .from-block textarea,
+        .bill-to input,
+        .bill-to textarea {
+            display: block;
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid transparent;
+            padding: 5px 2px;
+            font-size: 14px;
+            background: transparent;
+            resize: none;
+        }
+
+        .company-name {
+            font-family: 'Fraunces', serif;
+            font-size: 19px;
+            font-weight: 600 !important;
+            padding-bottom: 6px !important
+        }
+
+        .from-block input:focus,
+        .from-block textarea:focus,
+        .bill-to input:focus,
+        .bill-to textarea:focus,
+        .meta-block input:focus {
+            outline: none;
+            border-bottom-color: var(--brass)
+        }
+
+        .from-block input:hover,
+        .from-block textarea:hover {
+            border-bottom-color: var(--line)
+        }
+
+        .meta-block {
+            text-align: right
+        }
+
+        .meta-block h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 30px;
+            margin: 0 0 14px;
+            font-weight: 600;
+            letter-spacing: .01em;
+            color: var(--ink);
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 7px
+        }
+
+        .meta-row label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: var(--slate);
+            width: 78px;
+            text-align: left
+        }
+
+        .meta-row input {
+            border: none;
+            border-bottom: 1px solid var(--line);
+            background: transparent;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13px;
+            text-align: right;
+            padding: 4px 2px;
+            width: 148px;
+        }
+
+        .meta-row input:focus {
+            outline: none;
+            border-bottom-color: var(--brass)
+        }
+
+        .sheet-parties {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--line)
+        }
+
+        .eyebrow {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--brass-dark);
+            font-weight: 600;
+            margin-bottom: 8px
+        }
+
+        .bill-to {
+            max-width: 340px
+        }
+
+        .bill-to input {
+            font-size: 15px;
+            font-weight: 600;
+            font-family: 'Fraunces', serif
+        }
+
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 22px 0 4px
+        }
+
+        table.items thead th {
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: var(--slate);
+            font-weight: 600;
+            padding: 0 8px 10px;
+            border-bottom: 2px solid var(--ink);
+        }
+
+        table.items thead th:nth-child(2),
+        table.items thead th:nth-child(3),
+        table.items thead th:nth-child(4) {
+            text-align: right
+        }
+
+        table.items td {
+            padding: 8px;
+            border-bottom: 1px solid var(--line);
+            vertical-align: middle
+        }
+
+        table.items td:nth-child(2),
+        table.items td:nth-child(3),
+        table.items td:nth-child(4) {
+            text-align: right;
+            width: 108px
+        }
+
+        table.items td:last-child {
+            width: 34px;
+            padding: 8px 0
+        }
+
+        table.items input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            padding: 4px 2px;
+            font-family: 'IBM Plex Sans', sans-serif;
+            text-align: inherit;
+        }
+
+        table.items td:nth-child(2) input,
+        table.items td:nth-child(3) input {
+            font-family: 'IBM Plex Mono', monospace
+        }
+
+        table.items input:focus {
+            outline: none;
+            background: #FBF8F1
+        }
+
+        .line-total {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            white-space: nowrap
+        }
+
+        .remove-row {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: var(--slate-light);
+            cursor: pointer;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .remove-row:hover {
+            background: var(--danger-bg);
+            color: var(--danger)
+        }
+
+        .add-row {
+            border: 1px dashed var(--line);
+            background: transparent;
+            color: var(--slate);
+            padding: 9px 14px;
+            border-radius: 7px;
+            font-size: 13px;
+            cursor: pointer;
+            margin: 4px 0 8px;
+        }
+
+        .add-row:hover {
+            border-color: var(--brass);
+            color: var(--brass-dark)
+        }
+
+        .sheet-foot {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 32px;
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid var(--line)
+        }
+
+        .notes-block textarea {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            padding: 9px 10px;
+            font-size: 13px;
+            margin-bottom: 14px;
+            resize: vertical;
+            background: #FBFBFC;
+        }
+
+        .notes-block textarea:focus {
+            outline: none;
+            border-color: var(--brass)
+        }
+
+        .totals-block {
+            font-size: 14px
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            color: var(--slate)
+        }
+
+        .totals-row .inline-input {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--ink)
+        }
+
+        .totals-row input {
+            border: none;
+            border-bottom: 1px solid var(--line);
+            background: transparent;
+            width: 64px;
+            text-align: right;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13px;
+            padding: 2px;
+        }
+
+        .totals-row input:focus {
+            outline: none;
+            border-bottom-color: var(--brass)
+        }
+
+        #taxLabel {
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            color: var(--slate);
+            width: 80px;
+            padding: 2px;
+            border-bottom: 1px dashed var(--line);
+        }
+
+        .totals-row.grand {
+            border-top: 1.5px solid var(--ink);
+            margin-top: 6px;
+            padding-top: 12px;
+            color: var(--ink);
+            font-family: 'Fraunces', serif;
+            font-size: 19px;
+            font-weight: 600;
+        }
+
+        .totals-row.grand input {
+            display: none
+        }
+
+        #currencySymbol {
+            border: none;
+            background: transparent;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 16px;
+            width: 54px;
+            text-align: right;
+            color: var(--ink);
+            font-weight: 500;
+        }
+
+        .amount-words {
+            font-size: 11.5px;
+            color: var(--slate-light);
+            font-style: italic;
+            text-align: right;
+            margin: 4px 0 0;
+            line-height: 1.4
+        }
+
+        .signature {
+            margin-top: 34px;
+            text-align: right
+        }
+
+        .signature .sig-line {
+            width: 170px;
+            border-top: 1px solid var(--ink);
+            margin-left: auto;
+            margin-bottom: 6px
+        }
+
+        .signature span {
+            font-size: 11px;
+            color: var(--slate);
+            text-transform: uppercase;
+            letter-spacing: .06em
+        }
+
+        /* ---------- Toolbar ---------- */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 22px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar button {
+            padding: 11px 18px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--ink);
+            font-size: 13.5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: border-color .15s;
+        }
+
+        .toolbar button:hover {
+            border-color: var(--slate-light)
+        }
+
+        .toolbar button.primary {
+            background: var(--ink);
+            color: #fff;
+            border-color: var(--ink)
+        }
+
+        .toolbar button.primary:hover {
+            background: #0C141C
+        }
+
+        .history {
+            position: relative
+        }
+
+        .history-panel {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            right: 0;
+            width: 300px;
+            max-height: 340px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            box-shadow: 0 12px 28px rgba(22, 32, 43, .14);
+            padding: 6px;
+        }
+
+        .history-panel.open {
+            display: block
+        }
+
+        .history-panel .empty {
+            font-size: 13px;
+            color: var(--slate-light);
+            padding: 14px;
+            text-align: center;
+            margin: 0
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 10px;
+            border-radius: 7px;
+            cursor: pointer;
+            gap: 8px;
+        }
+
+        .history-item:hover {
+            background: #F4F5F7
+        }
+
+        .hi-main {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow: hidden
+        }
+
+        .hi-main strong {
+            font-size: 13px;
+            font-family: 'IBM Plex Mono', monospace
+        }
+
+        .hi-main span {
+            font-size: 12px;
+            color: var(--slate-light);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 170px
+        }
+
+        .hi-side {
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .hi-side>span {
+            font-size: 12.5px;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--slate)
+        }
+
+        .hi-delete {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 13px;
+            opacity: .5
+        }
+
+        .hi-delete:hover {
+            opacity: 1
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--ink);
+            color: #fff;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s, transform .2s;
+            z-index: 50;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0)
+        }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width:720px) {
+            .appbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 14px
+            }
+
+            .locale-control select {
+                min-width: 0;
+                width: 100%
+            }
+
+            .sheet {
+                padding: 26px 18px 22px
+            }
+
+            .sheet-head,
+            .sheet-foot {
+                grid-template-columns: 1fr;
+                gap: 18px
+            }
+
+            .meta-block {
+                text-align: left
+            }
+
+            .meta-row {
+                justify-content: flex-start
+            }
+
+            .meta-row input {
+                text-align: left
+            }
+table.items {
+                display: block;
+                overflow-x: auto
+            }
+
+            .toolbar {
+                justify-content: stretch
+            }
+
+            .toolbar button {
+                flex: 1
+            }
+
+            .history-panel {
+                right: auto;
+                left: 0;
+                width: 260px
+            }
+        }
+
+        /* ---------- Print ---------- */
+        @media print {
+
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
+
+            body {
+                background: #fff !important;
+            }
+
+            .appbar,
+            .toolbar,
+            .history-panel,
+            .logo-upload input[type=file],
+            .remove-row,
+            .add-row,
+            .logo-remove {
+                display: none !important;
+            }
+
+            .app {
+                max-width: none;
+                padding: 0;
+            }
+
+            .sheet-wrap {
+                position: static;
+            }
+
+            .sheet {
+                box-shadow: none !important;
+                border-radius: 0;
+                padding: 15px;
+                width: 100%;
+                page-break-inside: avoid;
+            }
+
+            .sheet-head,
+            .sheet-foot,
+            table.items {
+                page-break-inside: avoid;
+            }
+
+            input,
+            textarea,
+            #taxLabel,
+            #currencySymbol {
+                border: none !important;
+                background: transparent !important;
+            }
+
+            textarea {
+                height: auto !important;
+                overflow: hidden !important;
+                resize: none;
+            }
+
+            .logo-upload {
+                border: none;
+            }
+
+            /* Compact everything to fit 1 page */
+            .sheet {
+                font-size: 12px;
+            }
+
+            .sheet-head {
+                padding-bottom: 12px;
+            }
+
+            .sheet-parties {
+                padding: 10px 0;
+            }
+
+            .sheet-foot {
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+
+            table.items {
+                margin: 10px 0 2px;
+            }
+
+            table.items td,
+            table.items thead th {
+                padding: 5px 6px;
+            }
+
+            .notes-block textarea {
+                margin-bottom: 8px;
+                padding: 6px 8px;
+            }
+
+            .totals-row {
+                padding: 4px 0;
+            }
+
+            .signature {
+                margin-top: 16px;
+            }
+
+            .meta-block h1 {
+                font-size: 22px;
+                margin: 0 0 8px;
+            }
+
+            .logo-upload {
+                width: 64px;
+                height: 64px;
+                margin-bottom: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+
+        <header class="appbar">
+            <div class="brand">
+                <span class="brand-mark">IG</span>
+                <span class="brand-name">Rudrix Invoice Generator</span>
+            </div>
+            <div class="locale-control">
+                <label>Country / Region
+                    <select id="country">
+                        <option value="US">United States</option>
+                        <option value="AE">United Arab Emirates</option>
+                        <option value="BD" selected>Bangladesh</option>
+                        <option value="IN">India</option>
+                        <option value="OTHER">Other / Custom</option>
+                    </select>
+                </label>
+            </div>
+        </header>
+
+        <main class="sheet-wrap">
+<div class="sheet" id="sheet">
+                <div class="sheet-head">
+                    <div class="from-block">
+                        <div class="logo-upload" id="logoUpload">
+                            <img id="logoImg" alt="Company logo" style="display:none">
+                            <span id="logoPlaceholder">+ Logo</span>
+                            <input type="file" id="logoFile" accept="image/*">
+                        </div>
+                        <button type="button" class="logo-remove" id="logoRemove" title="Remove logo">×</button>
+                        <input class="company-name" id="company" placeholder="Your Company Name">
+                        <textarea id="companyAddress" placeholder="Address, city, country" rows="2"></textarea>
+                        <input id="companyTaxId" placeholder="Tax ID">
+                        <input id="companyEmail" placeholder="Email / Phone">
+                    </div>
+                    <div class="meta-block">
+                        <h1>Invoice</h1>
+                        <div class="meta-row"><label for="invoiceNo">No.</label><input id="invoiceNo"></div>
+                        <div class="meta-row"><label for="invoiceDate">Issued</label><input type="date"
+                                id="invoiceDate"></div>
+                        <div class="meta-row"><label for="dueDate">Due</label><input type="date" id="dueDate"></div>
+                        <div class="meta-row"><label for="currencyCode">Currency</label><input id="currencyCode"
+                                maxlength="6"></div>
+                    </div>
+                </div>
+
+                <div class="sheet-parties">
+                    <div class="bill-to">
+                        <span class="eyebrow">Bill to</span>
+                        <input id="customer" placeholder="Customer name">
+                        <textarea id="customerAddress" placeholder="Address, city, country" rows="2"></textarea>
+                        <input id="customerTaxId" placeholder="Tax ID">
+                    </div>
+                </div>
+
+                <table class="items">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Qty</th>
+                            <th>Unit price</th>
+                            <th>Line total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="items"></tbody>
+                </table>
+                <button class="add-row" id="addRowBtn" type="button">+ Add line item</button>
+
+                <div class="sheet-foot">
+                    <div class="notes-block">
+                        <label class="eyebrow">Notes</label>
+                        <textarea id="notes" rows="3" placeholder="Payment terms, thank-you note..."></textarea>
+                        <label class="eyebrow">Bank / payment details</label>
+                        <textarea id="bankDetails" rows="3"
+                            placeholder="Bank name, account no., routing / SWIFT..."></textarea>
+                    </div>
+                    <div class="totals-block">
+                        <div class="totals-row"><span>Subtotal</span><span id="subtotal">0.00</span></div>
+                        <div class="totals-row"><span>Discount</span><span class="inline-input"><input type="number"
+                                    id="discount" value="0" min="0" step="0.01"></span></div>
+                        <div class="totals-row"><input id="taxLabel" value="VAT"><span class="inline-input"><input
+                                    type="number" id="taxRate" value="15" min="0" step="0.01">%</span></div>
+                        <div class="totals-row grand"><span>Total due</span><span><input id="currencySymbol"
+                                    value="৳"><span id="grandTotal">0.00</span></span></div>
+                        <p class="amount-words" id="amountWords"></p>
+                        <div class="signature">
+                            <div class="sig-line"></div><span>Authorized signature</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div class="toolbar">
+            <button type="button" id="newBtn">New</button>
+            <div class="history">
+                <button type="button" id="historyBtn">My invoices ▾</button>
+                <div class="history-panel" id="historyPanel"></div>
+            </div>
+            <button type="button" id="exportBtn">Export JSON</button><button type="button" id="importBtn">Import
+                JSON</button><input type="file" id="importFile" accept=".json" style="display:none"><button
+                type="button" class="primary" id="saveBtn">Save</button>
+            <button type="button" class="primary" id="pdfBtn">Download PDF</button><button type="button" class="primary"
+                id="printBtn">Print / PDF</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function () {
+            const COUNTRIES = {
+                US: { currency: 'USD', symbol: '$', taxLabel: 'Sales Tax', taxIdLabel: 'EIN', defaultTax: 0, currencyName: 'Dollars', subunitName: 'Cents', system: 'intl' },
+                AE: { currency: 'AED', symbol: 'AED ', taxLabel: 'VAT', taxIdLabel: 'TRN', defaultTax: 5, currencyName: 'Dirhams', subunitName: 'Fils', system: 'intl' },
+                BD: { currency: 'BDT', symbol: '৳', taxLabel: 'VAT', taxIdLabel: 'BIN', defaultTax: 15, currencyName: 'Taka', subunitName: 'Poisha', system: 'indian' },
+                IN: { currency: 'INR', symbol: '₹', taxLabel: 'GST', taxIdLabel: 'GSTIN', defaultTax: 18, currencyName: 'Rupees', subunitName: 'Paise', system: 'indian' }
+            };
+
+            const $ = id => document.getElementById(id);
+            const val = id => $(id).value;
+            const setVal = (id, v) => { $(id).value = v || ''; };
+
+            const countrySelect = $('country');
+            const itemsBody = $('items');
+            const logoImg = $('logoImg');
+            const logoPlaceholder = $('logoPlaceholder');
+            const logoRemove = $('logoRemove');
+            const historyPanel = $('historyPanel');
+            const toast = $('toast');
+            const STORAGE_KEY = 'invoiceGeneratorInvoices_v1';
+
+            function escapeHtml(s) {
+                return String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            }
+
+            /* ---------- number to words ---------- */
+            const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+                'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+            const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+            function threeDigitWords(n) {
+                let str = '';
+                if (n >= 100) { str += ONES[Math.floor(n / 100)] + ' Hundred '; n %= 100; }
+                if (n >= 20) { str += TENS[Math.floor(n / 10)] + ' '; n %= 10; }
+                if (n > 0) { str += ONES[n] + ' '; }
+                return str.trim();
+            }
+            function intlWords(num) {
+                if (num === 0) return 'Zero';
+                let words = '';
+                const billion = Math.floor(num / 1e9); num %= 1e9;
+                const million = Math.floor(num / 1e6); num %= 1e6;
+                const thousand = Math.floor(num / 1e3); num %= 1e3;
+                if (billion) words += threeDigitWords(billion) + ' Billion ';
+                if (million) words += threeDigitWords(million) + ' Million ';
+                if (thousand) words += threeDigitWords(thousand) + ' Thousand ';
+                if (num) words += threeDigitWords(num);
+                return words.trim();
+            }
+            function indianWords(num) {
+                if (num === 0) return 'Zero';
+                let words = '';
+                const crore = Math.floor(num / 1e7); num %= 1e7;
+                const lakh = Math.floor(num / 1e5); num %= 1e5;
+                const thousand = Math.floor(num / 1e3); num %= 1e3;
+                if (crore) words += threeDigitWords(crore) + ' Crore ';
+                if (lakh) words += threeDigitWords(lakh) + ' Lakh ';
+                if (thousand) words += threeDigitWords(thousand) + ' Thousand ';
+                if (num) words += threeDigitWords(num);
+                return words.trim();
+            }
+            function amountInWords(amount, currencyName, subunitName, system) {
+                amount = Math.max(amount, 0);
+                const intPart = Math.floor(amount);
+                const decPart = Math.round((amount - intPart) * 100);
+                const fn = system === 'indian' ? indianWords : intlWords;
+                let str = fn(intPart) + ' ' + currencyName;
+                if (decPart > 0) str += ' and ' + fn(decPart) + ' ' + subunitName;
+                return str + ' only.';
+            }
+
+            function getCurrentConfig() {
+                const code = countrySelect.value;
+                if (code !== 'OTHER' && COUNTRIES[code]) return COUNTRIES[code];
+                return { system: 'intl', currencyName: val('currencyCode') || 'Units', subunitName: 'Cents' };
+            }
+            function formatNumber(v) {
+                const cfg = getCurrentConfig();
+                const locale = cfg.system === 'indian' ? 'en-IN' : 'en-US';
+                return v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            /* ---------- stamp ---------- */
+/* ---------- country switch ---------- */
+            countrySelect.addEventListener('change', () => {
+                const code = countrySelect.value;
+                if (code !== 'OTHER') {
+                    const cfg = COUNTRIES[code];
+                    setVal('currencyCode', cfg.currency);
+                    setVal('currencySymbol', cfg.symbol);
+                    setVal('taxLabel', cfg.taxLabel);
+                    setVal('taxRate', cfg.defaultTax);
+                    $('companyTaxId').placeholder = cfg.taxIdLabel + ' (optional)';
+                    $('customerTaxId').placeholder = cfg.taxIdLabel + ' (optional)';
+                } else {
+                    $('companyTaxId').placeholder = 'Tax ID (optional)';
+                    $('customerTaxId').placeholder = 'Tax ID (optional)';
+                }
+                calculate();
+            });
+/* ---------- line items ---------- */
+            function addRow(item) {
+                item = item || {};
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td><input type="text" class="item-desc" value="' + escapeHtml(item.desc || '') + '" placeholder="Item or service description"></td>' +
+                    '<td><input type="number" class="item-qty" value="' + (item.qty != null ? item.qty : 1) + '" min="0" step="1"></td>' +
+                    '<td><input type="number" class="item-price" value="' + (item.price != null ? item.price : 0) + '" min="0" step="0.01"></td>' +
+                    '<td class="line-total">0.00</td>' +
+                    '<td><button type="button" class="remove-row" aria-label="Remove item">×</button></td>';
+                itemsBody.appendChild(tr);
+                tr.querySelector('.item-qty').addEventListener('input', calculate);
+                tr.querySelector('.item-price').addEventListener('input', calculate);
+                tr.querySelector('.item-desc').addEventListener('input', () => { });
+                tr.querySelector('.remove-row').addEventListener('click', () => { tr.remove(); calculate(); });
+            }
+            $('addRowBtn').addEventListener('click', () => { addRow(); calculate(); });
+
+            /* ---------- calculation ---------- */
+            function calculate() {
+                let subtotal = 0;
+                itemsBody.querySelectorAll('tr').forEach(tr => {
+                    const q = parseFloat(tr.querySelector('.item-qty').value) || 0;
+                    const p = parseFloat(tr.querySelector('.item-price').value) || 0;
+                    const t = q * p;
+                    tr.querySelector('.line-total').textContent = formatNumber(t);
+                    subtotal += t;
+                });
+                const discount = parseFloat(val('discount')) || 0;
+                const taxRate = parseFloat(val('taxRate')) || 0;
+                const taxable = Math.max(subtotal - discount, 0);
+                const tax = taxable * taxRate / 100;
+                const grand = Math.round((taxable + tax) * 100) / 100;
+
+                $('subtotal').textContent = formatNumber(subtotal);
+                $('grandTotal').textContent = formatNumber(grand);
+                const cfg = getCurrentConfig();
+                $('amountWords').textContent = amountInWords(grand, cfg.currencyName, cfg.subunitName, cfg.system);
+            }
+            ['discount', 'taxRate'].forEach(id => $(id).addEventListener('input', calculate));
+            $('currencySymbol').addEventListener('input', () => { });
+            $('taxLabel').addEventListener('input', () => { });
+
+            /* ---------- logo upload ---------- */
+            $('logoFile').addEventListener('change', e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    logoImg.src = ev.target.result;
+                    logoImg.style.display = 'block';
+                    logoPlaceholder.style.display = 'none';
+                    logoRemove.style.display = 'flex';
+                };
+                reader.readAsDataURL(file);
+            });
+            logoRemove.addEventListener('click', e => {
+                e.stopPropagation();
+                logoImg.src = ''; logoImg.style.display = 'none';
+                logoPlaceholder.style.display = 'block';
+                logoRemove.style.display = 'none';
+                $('logoFile').value = '';
+            });
+
+            /* ---------- gather / apply state ---------- */
+            function gatherState() {
+                return {
+                    country: countrySelect.value,
+                    company: val('company'), companyAddress: val('companyAddress'),
+                    companyTaxId: val('companyTaxId'), companyEmail: val('companyEmail'),
+                    logo: (logoImg.style.display !== 'none' ? logoImg.src : ''),
+                    invoiceNo: val('invoiceNo'), invoiceDate: val('invoiceDate'), dueDate: val('dueDate'),
+                    currencyCode: val('currencyCode'), currencySymbol: val('currencySymbol'),
+                    taxLabel: val('taxLabel'), taxRate: val('taxRate'), discount: val('discount'),
+                    customer: val('customer'), customerAddress: val('customerAddress'), customerTaxId: val('customerTaxId'),
+                    notes: val('notes'), bankDetails: val('bankDetails'),
+                    items: Array.from(itemsBody.querySelectorAll('tr')).map(tr => ({
+                        desc: tr.querySelector('.item-desc').value,
+                        qty: tr.querySelector('.item-qty').value,
+                        price: tr.querySelector('.item-price').value
+                    }))
+                };
+            }
+
+            function applyState(state) {
+                countrySelect.value = state.country || 'BD';
+                setVal('company', state.company); setVal('companyAddress', state.companyAddress);
+                setVal('companyTaxId', state.companyTaxId); setVal('companyEmail', state.companyEmail);
+                if (state.logo) {
+                    logoImg.src = state.logo; logoImg.style.display = 'block';
+                    logoPlaceholder.style.display = 'none'; logoRemove.style.display = 'flex';
+                } else {
+                    logoImg.src = ''; logoImg.style.display = 'none';
+                    logoPlaceholder.style.display = 'block'; logoRemove.style.display = 'none';
+                }
+                setVal('invoiceNo', state.invoiceNo); setVal('invoiceDate', state.invoiceDate); setVal('dueDate', state.dueDate);
+                setVal('currencyCode', state.currencyCode); setVal('currencySymbol', state.currencySymbol);
+                setVal('taxLabel', state.taxLabel); setVal('taxRate', state.taxRate); setVal('discount', state.discount);
+                setVal('customer', state.customer); setVal('customerAddress', state.customerAddress); setVal('customerTaxId', state.customerTaxId);
+                setVal('notes', state.notes); setVal('bankDetails', state.bankDetails);
+                itemsBody.innerHTML = '';
+                (state.items && state.items.length ? state.items : [{ desc: '', qty: 1, price: 0 }]).forEach(addRow);
+                calculate();
+            }
+
+            /* ---------- save / history ---------- */
+            function loadAll() {
+                try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+                catch (e) { return []; }
+            }
+            function showToast(msg) {
+                toast.textContent = msg; toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 1800);
+            }
+            function saveInvoice() {
+                const state = gatherState();
+                if (!state.invoiceNo) { alert('Add an invoice number before saving.'); return; }
+                const all = loadAll();
+                const idx = all.findIndex(r => r.invoiceNo === state.invoiceNo);
+                const record = {
+                    invoiceNo: state.invoiceNo, customer: state.customer, date: state.invoiceDate,
+                    total: $('grandTotal').textContent, symbol: state.currencySymbol, savedAt: Date.now(), state
+                };
+                if (idx >= 0) all[idx] = record; else all.unshift(record);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+                renderHistory();
+                showToast('Invoice saved');
+            }
+            function renderHistory() {
+                const all = loadAll();
+                if (!all.length) { historyPanel.innerHTML = '<p class="empty">No saved invoices yet.</p>'; return; }
+                historyPanel.innerHTML = all.map(rec =>
+                    '<div class="history-item" data-no="' + escapeHtml(rec.invoiceNo) + '">' +
+                    '<div class="hi-main"><strong>' + escapeHtml(rec.invoiceNo) + '</strong>' +
+                    '<span>' + escapeHtml(rec.customer || 'No customer') + '</span></div>' +
+                    '<div class="hi-side"><span>' + escapeHtml(rec.symbol || '') + escapeHtml(rec.total || '0.00') + '</span>' +
+                    '<button type="button" class="hi-delete" data-no="' + escapeHtml(rec.invoiceNo) + '" aria-label="Delete">🗑</button></div>' +
+                    '</div>'
+                ).join('');
+                historyPanel.querySelectorAll('.history-item').forEach(el => {
+                    el.addEventListener('click', e => {
+                        if (e.target.classList.contains('hi-delete')) return;
+                        const rec = loadAll().find(r => r.invoiceNo === el.dataset.no);
+                        if (rec) { applyState(rec.state); historyPanel.classList.remove('open'); }
+                    });
+                });
+                historyPanel.querySelectorAll('.hi-delete').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const remaining = loadAll().filter(r => r.invoiceNo !== btn.dataset.no);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
+                        renderHistory();
+                    });
+                });
+            }
+            $('saveBtn').addEventListener('click', saveInvoice);
+            $('historyBtn').addEventListener('click', () => {
+                renderHistory();
+                historyPanel.classList.toggle('open');
+            });
+            document.addEventListener('click', e => {
+                if (!e.target.closest('.history')) historyPanel.classList.remove('open');
+            });
+
+            /* ---------- new / print ---------- */
+            function freshInvoiceNo() {
+                return 'INV-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
+            }
+            $('newBtn').addEventListener('click', () => {
+                if (val('invoiceNo') && !confirm('Start a new invoice? Unsaved changes will be lost.')) return;
+                setVal('company', ''); setVal('companyAddress', ''); setVal('companyTaxId', ''); setVal('companyEmail', '');
+                logoImg.src = ''; logoImg.style.display = 'none'; logoPlaceholder.style.display = 'block'; logoRemove.style.display = 'none';
+                setVal('customer', ''); setVal('customerAddress', ''); setVal('customerTaxId', '');
+                setVal('notes', ''); setVal('bankDetails', ''); setVal('discount', 0);
+                setVal('invoiceNo', freshInvoiceNo());
+                const today = new Date(); setVal('invoiceDate', today.toISOString().split('T')[0]);
+                const due = new Date(); due.setDate(due.getDate() + 14); setVal('dueDate', due.toISOString().split('T')[0]);
+                itemsBody.innerHTML = ''; addRow();
+                countrySelect.dispatchEvent(new Event('change'));
+            });
+            $('printBtn').addEventListener('click', () => {
+                const prevTitle = document.title;
+                document.title = val('invoiceNo') || 'Invoice';
+                window.print();
+                setTimeout(() => { document.title = prevTitle; }, 500);
+            });
+
+
+            /* export/import/pdf */
+            $('exportBtn').addEventListener('click', () => {
+                const data = localStorage.getItem(STORAGE_KEY) || '[]';
+                const blob = new Blob([data], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'invoice-backup.json';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    URL.revokeObjectURL(a.href);
+                    a.remove();
+                }, 1000);
+            });
+            $('importBtn').addEventListener('click', () => $('importFile').click());
+            $('importFile').addEventListener('change', e => {
+                const f = e.target.files[0]; if (!f) return;
+                const r = new FileReader();
+                r.onload = ev => { try { JSON.parse(ev.target.result); localStorage.setItem(STORAGE_KEY, ev.target.result); renderHistory(); showToast('Backup imported'); } catch (err) { alert('Invalid JSON'); } };
+                r.readAsText(f);
+            });
+            function printInvoice(){
+                const oldTitle = document.title;
+                document.title = val('invoiceNo') || 'Invoice';
+                window.print();
+                setTimeout(() => document.title = oldTitle, 1000);
+            }
+            $('pdfBtn').addEventListener('click', printInvoice);
+            $('printBtn').addEventListener('click', printInvoice);
+
+
+            /* ---------- init ---------- */
+            setVal('invoiceNo', freshInvoiceNo());
+            const today = new Date(); setVal('invoiceDate', today.toISOString().split('T')[0]);
+            const due = new Date(); due.setDate(due.getDate() + 14); setVal('dueDate', due.toISOString().split('T')[0]);
+            countrySelect.value = 'BD';
+            countrySelect.dispatchEvent(new Event('change'));
+            addRow();
+            calculate();
+            renderHistory();
+        })();
+    </script>
+</body>
+</html>
